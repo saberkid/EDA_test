@@ -10,7 +10,7 @@ import  plot
 def solve_nonlinear(element, n1, n2, n1_en, n2_en, i, h):
     global res
     global solved
-    res = np.linalg.solve(stamp,rhs)
+    res = np.linalg.solve(stamp, rhs)
     # print res
     # print element.vn
     if abs(res[n1]*n1_en-res[n2]*n2_en-element.vn) <= min(0.001*abs(element.vn), 1e-6):
@@ -20,7 +20,7 @@ def solve_nonlinear(element, n1, n2, n1_en, n2_en, i, h):
         element.vn = 0.1
     else:
         element.vn = res[n1]*n1_en - res[n2]*n2_en
-        build_stamps(elements,matrix_size,i,h)
+        build_stamps(elements, matrix_size, i, h)
 
 
 class Vlist_tran:
@@ -191,7 +191,7 @@ def build_stamps(elements, matrix_size, i, h,simumode=2):
                 stamp[matrix_size+elements[k].inum-1,n2] -= 1*n2_en
                 stamp[matrix_size+elements[k].inum-1,matrix_size+elements[k].inum-1] -= (2*elements[k].value)/h
                 rhs[matrix_size+elements[k].inum-1] -= 2*float(elements[k].value)*simuValue_tran_dic[elements[k].part_id].list_prim[i]/h
-        elif isinstance(elements[k],devices.diode):
+        elif isinstance(elements[k],devices.Diode):
             stamp[n1,n1] += elements[k].alpha*exp(elements[k].alpha*elements[k].vn)*n1_en*elements[k].isat
             stamp[n2,n2] += elements[k].alpha*exp(elements[k].alpha*elements[k].vn)*n2_en*elements[k].isat
             stamp[n1,n2] -= elements[k].alpha*exp(elements[k].alpha*elements[k].vn)*n1_en*n2_en*elements[k].isat
@@ -226,7 +226,7 @@ def solve_stamps(i,h,simumode):
     # print stamp
     # print rhs
     for j in xrange(len(elements)):
-        if isinstance(elements[j],devices.diode):
+        if isinstance(elements[j],devices.Diode):
             solved = 0
             while not solved:
                 n1_en = 1

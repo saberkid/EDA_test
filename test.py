@@ -21,4 +21,4 @@
 # print filename
 from scipy.optimize import fsolve
 from math import *
-print 1e-3
+print -1%5

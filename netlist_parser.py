@@ -1,7 +1,7 @@
 import circuit
 import devices
 import tran
-from time_function import sin
+from time_function import Sin, Pulse
 import dc
 import ac
 from string import *
@@ -80,6 +80,8 @@ def parse_function(fun):
     pass
 def to_function():
     pass
+
+
 def parse_lines(lines):
     global matrix_size
     global inum
@@ -97,6 +99,7 @@ def parse_lines(lines):
         'i': lambda line: parse_elements_isource(line, circ),
         'l': lambda line: parse_elements_inductor(line, circ),
         'r': lambda line: parse_elements_resistor(line, circ),
+        'm': lambda line: parse_elements_mosfet(line, circ),
         # 's': lambda line: parse_elements_switch(line, circ, models),
         'v': lambda line: parse_elements_vsource(line, circ)
             }
@@ -151,7 +154,75 @@ def parse_lines(lines):
                     # else:
                     #     directives.append((line, line_n))
                     # continue
-def  parse_elements_vcvs(line, circ):
+
+
+def parse_elements_mosfet(line, circ):
+    line_elements = line.split()
+    if len(line_elements) < 6:
+        raise NetlistParseError("parse_elem_mos(): required parameters are missing.")
+        # print "MX ND NG NS model_id W=xxx L=xxx"
+
+    model_label = line_elements[5]
+
+    # kp = None
+    w = None
+    l = None
+    # mos_type = None
+    # vt = None
+    m = 1
+    n = 1
+    # lambd = 0 # va is supposed infinite if not specified
+    # for index in range(6, len(line_elements)):
+    #     if line_elements[index][0] == '*':
+    #         break
+    #     param, value = parse_param_value_from_string(line_elements[index])
+    #     if param == "w":
+    #         w = convert_units(value)
+    #     elif param == "l":
+    #         l = convert_units(value)
+    #     elif param == "m":
+    #         m = convert_units(value)
+    #     elif param == "n":
+    #        n = convert_units(value)
+    #     else:
+    #         raise NetlistParseError("parse_elem_mos(): unknown parameter " + param)
+
+    # if (w is None) or (l is None):
+    #     raise NetlistParseError('parse_elem_mos(): required parameter ' +
+    #                             'w'*(w is None) + ' and '*
+    #                             (w is None and l is None) + 'l'*(l is None)+
+    #                             'missing.')
+        # print "MX ND NG NS W=xxx L=xxx <M=xxx> <N=xxx>"
+
+    ext_nd = line_elements[1]
+    ext_ng = line_elements[2]
+    ext_ns = line_elements[3]
+    ext_nb = line_elements[4]
+    nd = circ.add_node(ext_nd)
+    ng = circ.add_node(ext_ng)
+    ns = circ.add_node(ext_ns)
+    nb = circ.add_node(ext_nb)
+
+    # if model_label not in models:
+    #     raise NetlistParseError("parse_elem_mos(): Unknown model ID: " + model_label)
+    if model_label == "type1":
+        w = 0
+        l = 0
+        elem = devices.Mosfet(line_elements[0], nd, ng, ns, nb, w, l)
+
+    # if isinstance(models[model_label], ekv.ekv_mos_model):
+    #     elem = ekv.ekv_device(line_elements[0], nd, ng, ns, nb, w, l,
+    #                           models[model_label], m, n)
+    # elif isinstance(models[model_label], mosq.mosq_mos_model):
+    #     elem = mosq.mosq_device(line_elements[0], nd, ng, ns, nb, w, l,
+    #                             models[model_label], m, n)
+    # else:
+    #     raise NetlistParseError("parse_elem_mos(): Unknown MOS model type: " + model_label)
+
+    return [elem]
+
+
+def parse_elements_vcvs(line, circ):
     global matrix_size
     global inum
     line_elements = line.split()
@@ -171,7 +242,9 @@ def  parse_elements_vcvs(line, circ):
                             sn2=sn2, value=units_converter(line_elements[5]), inum=inum)
     # matrix_size += 1
     return [elem]
-def  parse_elements_cccs(line, circ):
+
+
+def parse_elements_cccs(line, circ):
     line_elements = line.split()
     if not len(line_elements)==5:
         raise NetlistParseError("")
@@ -184,6 +257,8 @@ def  parse_elements_cccs(line, circ):
     n2 = circ.add_node(ext_n2)
     elem = devices.CCCS(part_id=line_elements[0], n1=n1, n2=n2, value=units_converter(line_elements[4]),vnam=vnam,)
     return [elem]
+
+
 def  parse_elements_vccs(line, circ):
     line_elements = line.split()
     if not len(line_elements)==6:
@@ -297,7 +372,7 @@ def  parse_elements_isource(line, circ):
                         raise NetlistParseError("parse_elem_isource():No Ia value is found when sin function has been defined")
                 else:
                     raise NetlistParseError("parse_elem_isource():No Io value is found when sin function has been defined")
-                function = sin(i0,ia,freq)
+                function = Sin(i0,ia,freq)
         # if param_number and function is None:
         #     function = to_function(value,line_elements[index + 1:index + param_number+ 1],"voltage")
         #     index = index + param_number
@@ -324,6 +399,8 @@ def  parse_elements_isource(line, circ):
         elem.is_timedependent = True
         elem.function = function
     return [elem]
+
+
 def parse_elements_vsource(line, circ):
     global inum
     line = line.replace('(',' ')
@@ -385,31 +462,69 @@ def parse_elements_vsource(line, circ):
                     if line_elements[index].isdigit():
                         acp = units_converter(line_elements[index])
                 else:
-                    index -=1
-            elif lable =='sin':
+                    index -= 1
+            elif lable == 'sin':
                 index += 1
-                if index<len(line_elements):
+                if index < len(line_elements):
                     v0 = units_converter(line_elements[index])
                     index += 1
-                    if index<len(line_elements):
+                    if index < len(line_elements):
                         va = units_converter(line_elements[index])
                         index += 1
-                        if index<len(line_elements):
+                        if index < len(line_elements):
                             freq = units_converter(line_elements[index])
                         else:
                             raise NetlistParseError("parse_elem_vsource():No freq value is found when sin function has been defined")
                     else:
-                        raise NetlistParseError("parse_elem_vsource():No Va value is found when sin function has been defined")
+                        raise NetlistParseError("parse_elem_vsource():No Va value is found when Sin function has been defined")
                 else:
-                    raise NetlistParseError("parse_elem_vsource():No Vo value is found when sin function has been defined")
-                function = sin(v0,va,freq)
+                    raise NetlistParseError("parse_elem_vsource():No Vo value is found when Sin function has been defined")
+                function = Sin(v0, va, freq)
+            elif lable == 'pulse':
+                index += 1
+                if index < len(line_elements):
+                    v1 = units_converter(line_elements[index])
+                    index += 1
+                    if index < len(line_elements):
+                        v2 = units_converter(line_elements[index])
+                        index += 1
+                        if index < len(line_elements):
+                            td = units_converter(line_elements[index])
+                            index += 1
+                            if index < len(line_elements):
+                                tr = units_converter(line_elements[index])
+                                index += 1
+                                if index < len(line_elements):
+                                    tf = units_converter(line_elements[index])
+                                    index += 1
+                                    if index < len(line_elements):
+                                        pw = units_converter(line_elements[index])
+                                        index += 1
+                                        if index < len(line_elements):
+                                            per = units_converter(line_elements[index])
+                                        else:
+                                            raise NetlistParseError("parse_elem_vsource():No per value is found when pulse function has been defined")
+                                    else:
+                                        raise NetlistParseError("parse_elem_vsource():No pw value is found when pulse function has been defined")
+                                else:
+                                    raise NetlistParseError("parse_elem_vsource():No tf value is found when pulse function has been defined")
+                            else:
+                                raise NetlistParseError("parse_elem_vsource():No tr value is found when pulse function has been defined")
+                        else:
+                            raise NetlistParseError("parse_elem_vsource():No td value is found when pulse function has been defined")
+                    else:
+                        raise NetlistParseError("parse_elem_vsource():No v2 value is found when pulse function has been defined")
+                else:
+                     raise NetlistParseError("parse_elem_vsource():No v1 value is found when pulse function has been defined")
+                function = Pulse(v1, v2, td, tr, tf, pw, per)
+
         # if param_number and function is None:
         #     function = to_function(value,line_elements[index + 1:index + param_number+ 1],"voltage")
         #     index = index + param_number
                 # continue
         # elif function is not None:
         #     raise NetlistParseError("parse_elem_vsource(): only a time function can be defined.")
-        index = index + 1
+        index += 1
 
     if dc_value == None and function == None:
         raise NetlistParseError("parse_elem_Vsource(): neither idc nor a time function are defined.")
@@ -425,11 +540,14 @@ def parse_elements_vsource(line, circ):
     print elem.dc_value
     print elem.ac_value
     print elem.ac_phace
-    if function is not None:
+    print function
+    if function:
         elem.is_timedependent = True
         elem.function = function
     # matrix_size += 1
     return [elem]
+
+
 def parse_elements_capacitor(line,circ):
     global inum
     line_elements = line.split()
@@ -566,7 +684,7 @@ def parse_elements_diode(line,circ):
 
     # if model_label not in models:
     #     raise NetlistParseError("parse_elem_diode(): Unknown model id: " + model_label)
-    elem = devices.diode(part_id=line_elements[0], n1=n1, n2=n2, model_label=model_label, islinear=0)
+    elem = devices.Diode(part_id=line_elements[0], n1=n1, n2=n2, model_label=model_label, islinear=0)
     return [elem]
 
 
