@@ -33,6 +33,8 @@ class Vlist_tran:
         self.id_list.append(id)
         self.node1.append(node_1)
         self.node2.append(node_2)
+
+
 class res_tran:
     def __init__(self):
         self.id_list = []
@@ -43,9 +45,12 @@ class Ilist_tran:
     def __init__(self):
         self.id_list = []
         self.vid_list = []
-    def lst_append(self,id, vid):
+
+    def lst_append(self, id, vid):
         self.id_list.append(id)
         self.vid_list.append(vid)
+
+
 class simuValue_tran:
     def __init__(self,list_prim=[],list_deri=[]):
         self.list_prim = list_prim
@@ -71,7 +76,9 @@ def tran(t,h=0.001,simumode=2):
     x_axis = np.arange(0,t,h)
     for i in xrange(len(vlist.id_list)):
         y_axis = np.array(res_tran[vlist.id_list[i]])
-        plt.plot(x_axis,y_axis)
+        plt.plot(x_axis, y_axis)
+        plt.xlabel("t(s)")
+        plt.ylabel("%s(v)" % vlist.id_list[i])
         plt.show()
 
 

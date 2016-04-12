@@ -1,5 +1,6 @@
-import numpy as np
-import math
+import model
+
+
 class Object():
     def __init__(self, part_id=None, n1=None, n2=None, value=None, islinear=1):
         self.part_id = part_id
@@ -122,14 +123,14 @@ class Diode(Object):
 
 
 class Mosfet(object):
-    def __init__(self, part_id=None, nd=None, ng=None, ns=None, nb=None, w=None, l=None):
+    def __init__(self, part_id, nd, ng, ns, nb, model_name):
         self.part_id = part_id
         self.nd = nd
         self.ng = ng
         self.ns = ns
         self.nb = nb
-        self.w = w
-        self.l = l
+
+
 
 
 

@@ -11,10 +11,9 @@
 # w.Quit()
 from Tkinter import *
 import netlist_parser
-import circuit
 import tran
-import dc
-import ac
+# import dc
+# import ac
 import sys
 import tkFileDialog
 
@@ -22,14 +21,21 @@ import tkFileDialog
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
+
 class SimulatorError(Exception):
-    def __init__(self,arg):
+    def __init__(self, arg):
         self.arg = arg
+
+
 def submit():
-    text = str(netlist.get(0.0,END))
+    text = str(netlist.get(0.0, END))
     netlist_parser.parse_lines(text)
+
+
 def reset():
-    netlist.delete(0.0,END)
+    netlist.delete(0.0, END)
+
+
 def simulation_init():
     global time
     global interval
@@ -37,12 +43,13 @@ def simulation_init():
     try:
         simumode = int(CheckVar_simumode.get())
         if time.get() == "" or interval.get() == "":
-            raise SimulatorError("no time or interval is set")
+            t = netlist_parser.T_STOP
+            h = netlist_parser.T_STEP
         else:
             t = netlist_parser.units_converter(time.get())
             h = netlist_parser.units_converter(interval.get())
         if CheckVar_tran.get():
-            tran.tran(t,h,simumode)
+            tran.tran(t, h, simumode)
         if CheckVar_ac.get():
             pass
         if CheckVar_dc.get():
@@ -50,6 +57,8 @@ def simulation_init():
         # tran.build_stamps()
     except SimulatorError,e:
         print e.arg
+
+
 def open_file():
     global netlist
     global open_status
@@ -61,8 +70,9 @@ def open_file():
     finally:
         file_object.close()
     reset()
-    netlist.insert(INSERT,all_the_text)
+    netlist.insert(INSERT, all_the_text)
     open_status = 1
+
 
 def save_file():
     global open_status
@@ -70,7 +80,7 @@ def save_file():
     if open_status:
         try:
             file_object = open(filename, 'w')
-            text = netlist.get(0.0,END)
+            text = netlist.get(0.0, END)
             file_object.write(text)
         finally:
             file_object.close()
@@ -83,6 +93,7 @@ def save_file():
             file_object.write(text)
         finally:
             file_object.close()
+
 
 def saveas_file():
     global filename
@@ -128,6 +139,7 @@ def win_simu_init():
     Radiobutton(win_simu, text="tr",variable=CheckVar_simumode, value=3).grid(sticky=W)
     win_simu.mainloop()
 
+
 def win_root_init():
     global root
     global netlist
@@ -146,8 +158,8 @@ def win_root_init():
 
     netlist = Text(root)
     netlist.pack()
-    Button(root,text='submit',command = submit).pack(side = "left")
-    Button(root,text='reset',command = reset).pack(side = "left")
+    Button(root, text='submit', command = submit).pack(side = "left")
+    Button(root, text='reset', command = reset).pack(side = "left")
     root.mainloop()
 
 
