@@ -7,12 +7,8 @@ from time_function import Sin, Pulse
 import dc
 import ac
 from string import *
-circ = circuit.Circuit()
-matrix_size = 0
-inum = 0
 global MODEL_DIC
 MODEL_DIC = {}
-
 
 class NetlistParseError(Exception):
     def __init__(self,arg):
@@ -28,7 +24,7 @@ def find_vnam(vnam):
             inum = circ.elements[i].inum
             return inum
             break
-    if inum==None:
+    if inum == None:
         raise NetlistParseError("find_vnam(vnam):No voltage source called %s is found"%vnam)
 
 def units_converter(value_unit):
@@ -91,8 +87,14 @@ def to_function():
 def parse_lines(lines):
     global matrix_size
     global inum
-    matrix_size=0
-    inum=0
+    global VLIST
+    global ILIST
+    global circ
+    circ = circuit.Circuit()
+    VLIST = None
+    ILIST = None
+    matrix_size = 0
+    inum = 0
     circ.__init__()
     line = (lines.lower().split("\n"))
     parse_function = {
@@ -111,6 +113,7 @@ def parse_lines(lines):
             }
     parse_function_command = {
         '.plot': lambda line: parse_command_plot(line),
+        '.print': lambda line: parse_command_plot(line),
         '.dc': lambda line: parse_command_dc(line),
         '.ac': lambda line: parse_command_ac(line),
         '.tran': lambda line: parse_command_tran(line),
@@ -140,7 +143,7 @@ def parse_lines(lines):
         # print circ.description
         if not find_ends:
             raise NetlistParseError(".end not found")
-    except NetlistParseError,e:
+    except NetlistParseError, e:
         print e.arg
     except KeyError, e:
         print "KeyError: no key word is found in line %d" %(line_num+1)
@@ -449,8 +452,8 @@ def  parse_elements_isource(line, circ):
 
 def parse_elements_vsource(line, circ):
     global inum
-    line = line.replace('(',' ')
-    line = line.replace(')',' ')
+    line = line.replace('(', ' ')
+    line = line.replace(')', ' ')
     line_elements = line.split()
     if len(line_elements) < 3:
         raise NetlistParseError("parse_elem_isource(): malformed line")
@@ -474,7 +477,7 @@ def parse_elements_vsource(line, circ):
             if lable == 'dc':
                 dc_value = units_converter(value)
             elif lable == 'ac':
-                vsc = units_converter(value)
+                vac = units_converter(value)
             else:
                 raise NetlistParseError("parse_elem_isource(): unknown signal" + "type %s" % lable)
             # elif lable == 'pulse':
@@ -498,13 +501,13 @@ def parse_elements_vsource(line, circ):
                     raise NetlistParseError("parse_elem_Vsource():No DC value is found when it's been defined")
             elif lable == 'ac':
                 index += 1
-                if index<=len(line_elements):
+                if index <= len(line_elements):
                     if units_converter(line_elements[index]):
                         vac = units_converter(line_elements[index])
                 else:
                     raise NetlistParseError("parse_elem_Vsource():No AC value is found when it's been defined")
                 index += 1
-                if index<len(line_elements):
+                if index < len(line_elements):
                     if line_elements[index].isdigit():
                         acp = units_converter(line_elements[index])
                 else:
@@ -583,10 +586,10 @@ def parse_elements_vsource(line, circ):
     inum += 1
     elem = devices.VSource(part_id=line_elements[0], n1=n1, n2=n2,
                            dc_value=dc_value, ac_value=vac, ac_phase=acp, inum=inum)
-    print elem.dc_value
-    print elem.ac_value
-    print elem.ac_phace
-    print function
+    # print elem.dc_value
+    # print elem.ac_value
+    # print elem.ac_phace
+    # print function
     if function:
         elem.is_timedependent = True
         elem.function = function
@@ -612,8 +615,9 @@ def parse_elements_capacitor(line,circ):
     n1 = circ.add_node(ext_n1)
     n2 = circ.add_node(ext_n2)
     inum += 1
-    elem = devices.Capacitor(part_id=line_elements[0], n1=n1, n2=n2, value=units_converter(line_elements[3]), ic=ic,inum=inum, islinear=0)
-    print elem.ic
+    elem = devices.Capacitor(
+        part_id=line_elements[0], n1=n1, n2=n2, value=units_converter(line_elements[3]), ic=ic, inum=inum, islinear=0)
+    # print elem.ic
     return [elem]
 
 
@@ -622,8 +626,7 @@ def parse_elements_inductor(line, circ):
     line_elements = line.split()
     ic = None
     if len(line_elements) < 4 or \
-       (len(line_elements) > 5 and not line_elements[5][0] == "*" and
-        not line_elements[4][0] == "*"):
+       (len(line_elements) > 5 and not line_elements[5][0] == "*" and not line_elements[4][0] == "*"):
         raise NetlistParseError("parse_elements_inductor(): malformed line")
     elif len(line_elements) == 5:
         (label, value) = parse_equations(line_elements[4])
@@ -639,7 +642,7 @@ def parse_elements_inductor(line, circ):
     inum += 1
     elem = devices.Inductor(part_id=line_elements[0], n1=n1, n2=n2, value=units_converter(line_elements[3]), ic=ic, inum=inum, islinear=0)
     
-    print elem.ic
+    # print elem.ic
     return [elem]
 
 
@@ -697,11 +700,30 @@ def parse_elements_diode(line, circ):
 
 
 def parse_command_dc(line):
-    pass
+    global DC_SRC
+    global DC_V0
+    global DC_VT
+    global DC_VSTEP
+    line_elements = line.split()
+    if len(line_elements) < 5:
+        raise NetlistParseError(" parse_command_dc():syntax error")
+    DC_SRC = line_elements[1]
+    DC_V0 = units_converter(line_elements[2])
+    DC_VT = units_converter(line_elements[3])
+    DC_VSTEP = units_converter(line_elements[4])
 
 
 def parse_command_ac(line):
-    pass
+    global N
+    global FSTART
+    global FSTOP
+    line_elements = line.split()
+    if len(line_elements) < 5:
+        raise NetlistParseError(" parse_command_ac():syntax error")
+    elif line_elements[1] == "dec":
+        N = units_converter(line_elements[2])
+        FSTART = units_converter(line_elements[3])
+        FSTOP = units_converter(line_elements[4])
 
 
 def parse_command_tran(line):
@@ -715,41 +737,85 @@ def parse_command_tran(line):
 
 
 def parse_command_plot(line):
-    global vlist
-    global ilist
+    global VLIST
+    global ILIST
     global simu_type
     line_elements = line.split()
     simu_type = 0
-    # if not(globals().has_key('vlist') or globals().has_key('ilist')):
-    #     vlist = tran.Vlist_tran()
-    #     ilist = tran.Ilist_tran()
 
     if line_elements[1] == "tran":
-        vlist = tran.Vlist_tran()
-        ilist = tran.Ilist_tran()
         simu_type = 1
-
         for i in range(2, len(line_elements)):
             plot_elements = line_elements[i].replace('(', ' ')
             plot_elements = plot_elements.replace(')', ' ')
             plot_elements = plot_elements.replace(',', ' ')
             para = plot_elements.split()
             if para[0].find('v') == 0:
+                if not VLIST:
+                    VLIST = tran.Vlist_tran()
                 if len(para) == 3:
-                    vlist.lst_append(para[0], circ.add_node(para[1]), circ.add_node(para[2]))
+                    VLIST.lst_append(para[0], circ.add_node(para[1]), circ.add_node(para[2]))
                 elif len(para) == 2:
-                    vlist.lst_append(para[0], circ.add_node(para[1]))
+                    VLIST.lst_append(para[0], circ.add_node(para[1]))
                 else:
                     raise NetlistParseError(" parse_command_plot():syntax error")
 
             elif para[0].find('i') == 0:
+                if not ILIST:
+                    ILIST = tran.Ilist_tran()
                 if len(para) == 2:
-                    ilist.lst_append(para[0], para[1])
+                    ILIST.lst_append(para[0], para[1])
                 else:
                     raise NetlistParseError(" parse_command_plot():syntax error")
 
-        # print vlist.node2
-        # print ilist.vid_list
+    elif line_elements[1] == "dc":
+        simu_type = 2
+        for i in range(2, len(line_elements)):
+            plot_elements = line_elements[i].replace('(', ' ')
+            plot_elements = plot_elements.replace(')', ' ')
+            plot_elements = plot_elements.replace(',', ' ')
+            para = plot_elements.split()
+            if para[0].find('v') == 0:
+                if not VLIST:
+                    VLIST = dc.Vlist_dc()
+                if len(para) == 3:
+                    VLIST.lst_append(para[0], circ.add_node(para[1]), circ.add_node(para[2]))
+                elif len(para) == 2:
+                    VLIST.lst_append(para[0], circ.add_node(para[1]))
+                else:
+                    raise NetlistParseError(" parse_command_plot():syntax error")
+
+            elif para[0].find('i') == 0:
+                if not ILIST:
+                    ILIST = dc.Ilist_dc()
+                if len(para) == 2:
+                    ILIST.lst_append(para[0], para[1])
+                else:
+                    raise NetlistParseError(" parse_command_plot():syntax error")
+    elif line_elements[1] == "ac":
+        simu_type = 2
+        for i in range(2, len(line_elements)):
+            plot_elements = line_elements[i].replace('(', ' ')
+            plot_elements = plot_elements.replace(')', ' ')
+            plot_elements = plot_elements.replace(',', ' ')
+            para = plot_elements.split()
+            if para[0].find('v') == 0:
+                if not VLIST:
+                    VLIST = ac.Vlist_ac()
+                if len(para) == 3:
+                    VLIST.lst_append(para[0], circ.add_node(para[1]), circ.add_node(para[2]))
+                elif len(para) == 2:
+                    VLIST.lst_append(para[0], circ.add_node(para[1]))
+                else:
+                    raise NetlistParseError(" parse_command_plot():syntax error")
+
+            elif para[0].find('i') == 0:
+                if not ILIST:
+                    ILIST = ac.Ilist_ac()
+                if len(para) == 2:
+                    ILIST.lst_append(para[0], para[1])
+                else:
+                    raise NetlistParseError(" parse_command_plot():syntax error")
 
 
 def parse_command_model(line):

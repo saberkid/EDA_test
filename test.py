@@ -21,4 +21,4 @@
 # print filename
 from scipy.optimize import fsolve
 from math import *
-print -1%5
+print "%d%d"%(1,2)
